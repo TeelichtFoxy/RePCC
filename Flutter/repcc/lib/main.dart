@@ -3,6 +3,50 @@ import 'package:network_info_plus/network_info_plus.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
+import 'package:encrypt/encrypt.dart' as encrypt;
+
+class ObfuscationService {
+  static encrypt.Key _getKey(String code) {
+    String paddedCode = code.padRight(32, '0');
+
+    return encrypt.Key.fromUtf8(paddedCode.substring(0, 32));
+  }
+
+  static encrypt.IV _genIV() {
+    return encrypt.IV.fromSecureRandom(16);
+  }
+
+  static Map<String, String> obfuscate(String plainText, String tfaCode) {
+    final key = _getKey(tfaCode);
+    final iv = _genIV();
+    final encrypter = encrypt.Encrypter(
+      encrypt.AES(key, mode: encrypt.AESMode.cbc, padding: 'PKCS7')
+    );
+    final encrypted = encrypter.encrypt(plainText, iv: iv);
+
+    return {
+      'data': encrypted.base64,
+      'iv': iv.base64
+    };
+  }
+
+  static String deobfuscate(Map<String, String> data, String tfaCode) {
+    final key = _getKey(tfaCode);
+    final iv = encrypt.IV.fromBase64(data['iv']!);
+    final encrypted = encrypt.Encrypted.fromBase64(data['data']!);
+    final encrypter = encrypt.Encrypter(
+      encrypt.AES(key, mode: encrypt.AESMode.cbc, padding: 'PKCS7')
+    );
+
+    return encrypter.decrypt(encrypted, iv: iv);
+  }
+}
+
+class REPCC {
+  
+}
 
 void main() {
   runApp(const MyApp());
@@ -36,7 +80,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     _navigateToConnectREPCCDeviceScreen();
   }
 
@@ -84,10 +128,12 @@ class ConnectREPCCDeviceScreen extends StatefulWidget {
 
 class _ConnectREPCCDeviceScreenState extends State<ConnectREPCCDeviceScreen> {
   String _networkStatus = 'Lokal (Port 15248)';
+  String _connectingInformation = '';
   bool _isScanning = false;
   List<String> _scanResults = [];
 
   final TextEditingController _ipController = TextEditingController();
+  final TextEditingController _twofaController = TextEditingController();
 
   static const int targetPort = 15248;
 
@@ -140,11 +186,12 @@ class _ConnectREPCCDeviceScreenState extends State<ConnectREPCCDeviceScreen> {
     setState(() {
       _isScanning = true;
       _scanResults = ['Prüfe $targetIp:$targetPort...'];
+      _connectingInformation = 'Prüfe ob $targetIp ein REPCC Device ist und auf Verbindung wartet...';
     });
 
-    const int timeout = 3000;
+    const int timeout = 10000;
 
-    await _checkREPCCDevice(targetIp, targetPort, timeout);
+    await _connectREPCCDevice(targetIp, targetPort, timeout);
 
     if (mounted) {
       setState(() {
@@ -153,8 +200,8 @@ class _ConnectREPCCDeviceScreenState extends State<ConnectREPCCDeviceScreen> {
     }
   }
 
-  Future<void> _checkREPCCDevice(String ip, int port, int timeout) async {
-    final url = Uri.parse('http://$ip:$port/getinfo');
+  Future<void> _connectREPCCDevice(String ip, int port, int timeout) async {
+    final url = Uri.parse('http://$ip:$port/youthere');
     String result = '';
 
     try {
@@ -177,7 +224,80 @@ class _ConnectREPCCDeviceScreenState extends State<ConnectREPCCDeviceScreen> {
       setState(() {
         _scanResults.clear();
         _scanResults.add(result);
+        _connectingInformation = result;
       });
+    }
+
+    if (result.contains('(Status 200)')) {
+      final url = Uri.parse('http://$ip:$port/trytfa');
+
+      final code = _twofaController.value;
+      final obf = ObfuscationService.obfuscate(code.toString(), code.toString());
+      final msg = obf['data'];
+      final iv = obf['iv'];
+
+      final String jsonBody = jsonEncode({
+        'data': msg,
+        'iv': iv
+      });
+
+      try {
+        final response = await http.post(
+          url,
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonBody
+          ).timeout(Duration(milliseconds: timeout));
+
+          if (response.statusCode == 200) {
+            final String responseBody = response.body;
+
+            if (responseBody.contains(code.toString())) {
+              //Richtiger 2FA Code (PC Bestätigung)
+              setState(() {
+                _connectingInformation = '2FA Codes stimmen überein';
+              });
+
+              //Reserve REPCC Connection
+              final url = Uri.parse('http://$ip:$port/reserveconnection');
+
+              try {
+                final response = await http.get(url).timeout(Duration(milliseconds: timeout));
+
+                if (response.statusCode == 200) {
+                  setState(() {
+                    _connectingInformation = 'Reservieren der REPCC Verbindung erfolgreich.';
+                  });
+                } else {
+                  setState(() {
+                    _connectingInformation = 'Fehler beim reservieren der REPCC Verbindung (Status ${response.statusCode})';
+                  });
+                }
+              } catch (e) {
+                setState(() {
+                  _connectingInformation = 'Fehler beim reservieren der REPCC Verbindung: ${e.runtimeType}';
+                });
+              }
+            }
+          }
+      } catch (e) {
+        setState(() {
+          _connectingInformation = 'Fehler beim Überprüfen vom 2FA Code: ${e.runtimeType}';
+        });
+      }
+    }
+  }
+
+  Future<void> _helpGetIP(String system) async {
+    if (system == 'Win') {
+      //WINDOWS
+      final Uri url = Uri.parse('https://github.com/teelichtfoxy/repcc/#Find-IP-Windows');
+      await launchUrl(url);
+    } else if (system == 'Mac') {
+      //MACOS
+      final Uri url = Uri.parse('https://github.com/teelichtfoxy/repcc/#Find-IP-MacOS');
+      await launchUrl(url);
     }
   }
 
@@ -213,6 +333,31 @@ class _ConnectREPCCDeviceScreenState extends State<ConnectREPCCDeviceScreen> {
                 ],
               ),
             ),
+            SizedBox(height: 16,),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('IP-Adresse vom PC herausfinden', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () => _helpGetIP('Win'),
+                    child: Text('Windows', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    ),
+                  const SizedBox(height: 4),
+                  ElevatedButton(
+                    onPressed: () => _helpGetIP('Mac'),
+                    child: Text('MacOS', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  ),
+                ],
+              ),
+            ),
 
             const SizedBox(height: 30),
 
@@ -233,12 +378,26 @@ class _ConnectREPCCDeviceScreenState extends State<ConnectREPCCDeviceScreen> {
 
             const SizedBox(height: 20),
 
+            TextField(
+              controller: _twofaController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: '2FA Code vom PC (z.B. 123456)',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.lock, color: Colors.teal),
+                hintText: 'XXXXXX',
+              ),
+              style: const TextStyle(fontSize: 17),
+            ),
+
+            const SizedBox(height: 20),
+
             ElevatedButton.icon(
               onPressed: _isScanning ? null : _scanIPDevice,
               icon: _isScanning
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.flash_on),
-              label: Text(_isScanning ? 'Prüfung läuft...' : 'Prüfung starten'),
+              label: Text(_isScanning ? 'Verbinden...' : 'Verbinden'),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
                 backgroundColor: Colors.teal.shade700,
@@ -249,6 +408,10 @@ class _ConnectREPCCDeviceScreenState extends State<ConnectREPCCDeviceScreen> {
                 elevation: 5,
               ),
             ),
+
+            const SizedBox(height: 5),
+
+            Text(_connectingInformation, style: TextStyle(color: Colors.red)),
           ],
         ),
       ),
