@@ -269,6 +269,18 @@ class _ConnectREPCCDeviceScreenState extends State<ConnectREPCCDeviceScreen> {
                   setState(() {
                     _connectingInformation = 'Reservieren der REPCC Verbindung erfolgreich.';
                   });
+
+                  Future.delayed(Duration(milliseconds: 500));
+
+                  setState(() {
+                    _connectingInformation = 'Stelle Verbindung her...';
+                  });
+
+                  Future.delayed(Duration(milliseconds: 500));
+
+                  setState(() {
+                    _connectingInformation = 'Lade GUI...';
+                  });
                 } else {
                   setState(() {
                     _connectingInformation = 'Fehler beim reservieren der REPCC Verbindung (Status ${response.statusCode})';
