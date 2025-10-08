@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A3A70F822E966E51002B3D6E /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3A70F812E966E51002B3D6E /* CoreGraphics.framework */; };
+		A3A70F842E966E62002B3D6E /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3A70F832E966E62002B3D6E /* Carbon.framework */; };
+		A3F6A2DE2E9645570090AC4F /* Vapor in Frameworks */ = {isa = PBXBuildFile; productRef = A3F6A2DD2E9645570090AC4F /* Vapor */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		A3F6A2D02E963F220090AC4F /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -19,6 +25,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A3A70F812E966E51002B3D6E /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		A3A70F832E966E62002B3D6E /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		A3F6A2D22E963F220090AC4F /* REPCCService */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = REPCCService; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -35,16 +43,29 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A3A70F842E966E62002B3D6E /* Carbon.framework in Frameworks */,
+				A3A70F822E966E51002B3D6E /* CoreGraphics.framework in Frameworks */,
+				A3F6A2DE2E9645570090AC4F /* Vapor in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		A3A70F802E966E51002B3D6E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A3A70F832E966E62002B3D6E /* Carbon.framework */,
+				A3A70F812E966E51002B3D6E /* CoreGraphics.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		A3F6A2C92E963F220090AC4F = {
 			isa = PBXGroup;
 			children = (
 				A3F6A2D42E963F220090AC4F /* REPCCService */,
+				A3A70F802E966E51002B3D6E /* Frameworks */,
 				A3F6A2D32E963F220090AC4F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -77,6 +98,9 @@
 			);
 			name = REPCCService;
 			packageProductDependencies = (
+				A3F6A2DD2E9645570090AC4F /* Vapor */,
+				A3F6A2DF2E9645570090AC4F /* VaporTesting */,
+				A3F6A2E12E9645570090AC4F /* XCTVapor */,
 			);
 			productName = REPCCService;
 			productReference = A3F6A2D22E963F220090AC4F /* REPCCService */;
@@ -106,6 +130,9 @@
 			);
 			mainGroup = A3F6A2C92E963F220090AC4F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A3F6A2DC2E9645570090AC4F /* XCRemoteSwiftPackageReference "vapor" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A3F6A2D32E963F220090AC4F /* Products */;
 			projectDirPath = "";
@@ -295,6 +322,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A3F6A2DC2E9645570090AC4F /* XCRemoteSwiftPackageReference "vapor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor/vapor.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.117.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A3F6A2DD2E9645570090AC4F /* Vapor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A3F6A2DC2E9645570090AC4F /* XCRemoteSwiftPackageReference "vapor" */;
+			productName = Vapor;
+		};
+		A3F6A2DF2E9645570090AC4F /* VaporTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A3F6A2DC2E9645570090AC4F /* XCRemoteSwiftPackageReference "vapor" */;
+			productName = VaporTesting;
+		};
+		A3F6A2E12E9645570090AC4F /* XCTVapor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A3F6A2DC2E9645570090AC4F /* XCRemoteSwiftPackageReference "vapor" */;
+			productName = XCTVapor;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A3F6A2CA2E963F220090AC4F /* Project object */;
 }

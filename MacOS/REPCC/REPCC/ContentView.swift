@@ -7,6 +7,10 @@
 
 import SwiftUI
 import Foundation
+import AppKit
+import CoreImage
+
+let baseURL = "http://localhost:15248"
 
 func getLocalIPAddress() -> String? {
     var address: String?
@@ -47,37 +51,190 @@ func genTFACode() -> String {
     return String(code)
 }
 
+func genQRCode(text: String) -> NSImage? {
+    guard let data = text.data(using: .ascii) else { return nil }
+    guard let qrcifilter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
+    
+    qrcifilter.setValue(data, forKey: "inputMessage")
+    qrcifilter.setValue("L", forKey: "inputCorrectionLevel")
+
+    guard let ciimage = qrcifilter.outputImage else { return nil }
+
+    let transform = CGAffineTransform(scaleX: 8, y: 8)
+    let scaledCIImage = ciimage.transformed(by: transform)
+    let rep = NSCIImageRep(ciImage: scaledCIImage)
+    let nsImage = NSImage(size: rep.size)
+    nsImage.addRepresentation(rep)
+  
+    return nsImage
+}
+
+func startREPCCService() async {
+    let fullURLString = "\(baseURL)/wakeup"
+    guard let url = URL(string: fullURLString) else { return }
+    
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    
+    do {
+        let (_, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+            DispatchQueue.main.async {
+                print("Started!")
+                print(httpResponse)
+            }
+        }
+    } catch {
+        print("Network Error: \(error)")
+    }
+}
+
+func stopREPCCService() async {
+    let fullURLString = "\(baseURL)/sleep"
+    guard let url = URL(string: fullURLString) else { return }
+    
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    
+    do {
+        let (_, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+            DispatchQueue.main.async {
+                print("Stopped!")
+            }
+        }
+    } catch {
+        print("Network Error: \(error)")
+    }
+}
+
+func A() async {
+    let fullURLString = "\(baseURL)/keyboard"
+    guard let url = URL(string: fullURLString) else { return }
+    
+    do {
+        try await Task.sleep(nanoseconds: 3_000_000_000)
+        print("3 Seconds Over")
+    } catch {
+        print("Await Error: \(error)")
+    }
+    
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    
+    struct KeyCommand: Codable {
+        let key: UInt16
+        let modifier: UInt32
+    }
+    let command = KeyCommand(key: 0x00, modifier: 0)
+    
+    do {
+        let encoder = JSONEncoder()
+        request.httpBody = try encoder.encode(command)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let (_, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+            print("Success!")
+        } else {
+            print("Error!")
+        }
+    } catch {
+        print("Error: \(error)")
+    }
+}
+
+struct TestAPIView: View {
+    @Environment(\.dismiss) var dismiss
+    var body: some View {
+        VStack {
+            Text("HI").font(Font.largeTitle).bold().padding()
+            VStack {
+                HStack {
+                    Button("A") {
+                        Task {
+                            await A()
+                        }
+                    }
+                    Button("B") {
+                        
+                    }
+                }
+                HStack {
+                    Button("<") {
+                        
+                    }
+                    Button(">") {
+                        
+                    }
+                }
+            }
+            Button("Close") {
+                dismiss()
+            }
+        }.padding(50)
+    }
+}
+
 struct ContentView: View {
+    @State private var showTestAPIView = false
     @State private var ipAddress: String = "Lade IP-Adresse..."
     @State private var tfaCode: String = "Generiere Code..."
-    @State private var repccRunning: Bool = true
+    @State private var repccRunning: Bool = false
+    @State private var qrCodeText: String = "https://google.com"
+    
+    var qrCodeImage: NSImage? {
+        genQRCode(text: qrCodeText)
+    }
     
     var body: some View {
         VStack {
+            if let image = qrCodeImage {
+                Image(nsImage: image).padding()
+            }
             Text("IP: " + ipAddress).font(Font.largeTitle).bold().padding()
             Text("2FA Code: " + tfaCode).font(Font.title).bold().padding()
+            Text("Status: " + (repccRunning ? "Läuft" : "Gestoppt"))
             HStack {
                 Button("Starten") {
-                    startREPCC()
+                    Task {
+                        await startREPCC()
+                    }
                 }.disabled(repccRunning)
                 Button("Stoppen") {
-                    stopREPCC()
+                    Task {
+                        await stopREPCC()
+                    }
                 }.disabled(!repccRunning)
             }
+            Button("Test API") {
+                showTestAPIView = true
+            }.padding()
         }.padding(50).onAppear() {
             updateIPAdress()
             updateTFACode()
+            Task {
+                await startREPCC()
+            }
+        }.sheet(isPresented: $showTestAPIView) {
+            TestAPIView()
         }
     }
     
-    func startREPCC() {
-        repccRunning = true
+    func startREPCC() async {
         updateIPAdress()
         updateTFACode()
+        updateQRCode()
+        await startREPCCService()
+        repccRunning = true
     }
     
-    func stopREPCC() {
+    func stopREPCC() async {
         repccRunning = false
+        await stopREPCCService()
         tfaCode = "Gestoppt"
     }
     
@@ -91,6 +248,10 @@ struct ContentView: View {
     
     func updateTFACode() {
         tfaCode = genTFACode()
+    }
+    
+    func updateQRCode() {
+        qrCodeText = String(ipAddress + ":" + tfaCode)
     }
 }
 
