@@ -12,6 +12,20 @@ import CoreImage
 
 let baseURL = "http://localhost:15248"
 
+extension Bundle {
+    var appVersion: String {
+        return infoDictionary?["CFBundleShortVersionString"] as? String ?? "N/A"
+    }
+    
+    var buildNumber: String {
+        return infoDictionary?["CFBundleVersion"] as? String ?? "N/A"
+    }
+    
+    var fullVersion: String {
+        return "\(appVersion) (\(buildNumber))"
+    }
+}
+
 func getLocalIPAddress() -> String? {
     var address: String?
     
@@ -82,7 +96,6 @@ func startREPCCService() async {
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
             DispatchQueue.main.async {
                 print("Started!")
-                print(httpResponse)
             }
         }
     } catch {
@@ -111,7 +124,7 @@ func stopREPCCService() async {
 }
 
 func A() async {
-    let fullURLString = "\(baseURL)/keyboard"
+    let fullURLString = "\(baseURL)/keyboard/key"
     guard let url = URL(string: fullURLString) else { return }
     
     do {
@@ -147,44 +160,32 @@ func A() async {
     }
 }
 
-struct TestAPIView: View {
-    @Environment(\.dismiss) var dismiss
-    var body: some View {
-        VStack {
-            Text("HI").font(Font.largeTitle).bold().padding()
-            VStack {
-                HStack {
-                    Button("A") {
-                        Task {
-                            await A()
-                        }
-                    }
-                    Button("B") {
-                        
-                    }
-                }
-                HStack {
-                    Button("<") {
-                        
-                    }
-                    Button(">") {
-                        
-                    }
-                }
-            }
-            Button("Close") {
-                dismiss()
-            }
-        }.padding(50)
+func getServiceVersion() async -> String {
+    do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { print("Await Error: \(error)") }
+    let fullURLString = "\(baseURL)/version"
+    guard let url = URL(string: fullURLString) else { return "ERROR" }
+    
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+    
+    do {
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        let version = String(data: data, encoding: .utf8)
+        return version ?? "ERROR"
+    } catch {
+        print("ERROR: \(error)")
     }
+    return ""
 }
 
 struct ContentView: View {
-    @State private var showTestAPIView = false
     @State private var ipAddress: String = "Lade IP-Adresse..."
     @State private var tfaCode: String = "Generiere Code..."
     @State private var repccRunning: Bool = false
-    @State private var qrCodeText: String = "https://google.com"
+    @State private var qrCodeText: String = "STOPPED"
+    @State private var serviceVersion: String = "Lade Version..."
+    @State private var appVersion: String = Bundle.main.fullVersion
     
     var qrCodeImage: NSImage? {
         genQRCode(text: qrCodeText)
@@ -198,6 +199,8 @@ struct ContentView: View {
             Text("IP: " + ipAddress).font(Font.largeTitle).bold().padding()
             Text("2FA Code: " + tfaCode).font(Font.title).bold().padding()
             Text("Status: " + (repccRunning ? "Läuft" : "Gestoppt"))
+            Text("Service Version: " + serviceVersion)
+            Text("App Version: " + appVersion)
             HStack {
                 Button("Starten") {
                     Task {
@@ -207,21 +210,18 @@ struct ContentView: View {
                 Button("Stoppen") {
                     Task {
                         await stopREPCC()
+                        await serviceVersion = getServiceVersion()
                     }
                 }.disabled(!repccRunning)
             }
-            Button("Test API") {
-                showTestAPIView = true
-            }.padding()
         }.padding(50).onAppear() {
             updateIPAdress()
             updateTFACode()
             Task {
                 await startREPCC()
+                serviceVersion = await getServiceVersion()
             }
-        }.sheet(isPresented: $showTestAPIView) {
-            TestAPIView()
-        }
+        }.padding()
     }
     
     func startREPCC() async {
@@ -230,12 +230,15 @@ struct ContentView: View {
         updateQRCode()
         await startREPCCService()
         repccRunning = true
+        serviceVersion = "Lade Version..."
+        await serviceVersion = getServiceVersion()
     }
     
     func stopREPCC() async {
         repccRunning = false
         await stopREPCCService()
         tfaCode = "Gestoppt"
+        qrCodeText = "STOPPED"
     }
     
     func updateIPAdress() {
