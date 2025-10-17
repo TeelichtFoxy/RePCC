@@ -123,6 +123,7 @@ class ConnectREPCCDeviceScreen extends StatefulWidget {
   const ConnectREPCCDeviceScreen({super.key});
 
   @override
+  
   State<ConnectREPCCDeviceScreen> createState() => _ConnectREPCCDeviceScreenState();
 }
 

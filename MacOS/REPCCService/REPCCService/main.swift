@@ -183,6 +183,20 @@ func main() {
             return Bundle.main.fullVersion
         }
         
+        app.routes.get("device","information") { req -> String in
+            let processInfo = ProcessInfo.processInfo
+            let osVersion = ProcessInfo.processInfo.operatingSystemVersion
+            let osVersionString = "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
+            let fullOSString = processInfo.operatingSystemVersionString
+            let currentHost = Host.current()
+            let localizedName = currentHost.localizedName ?? "Unknown"
+            let hostName = currentHost.name ?? "Unknown"
+            
+            let output = "\(localizedName)---\(osVersionString)---\(hostName)---\(osVersionString)"
+            
+            return output
+        }
+        
         app.routes.post("sleep") { req -> HTTPStatus in
             req.application.serviceStateManager.setSleeping(true)
             
