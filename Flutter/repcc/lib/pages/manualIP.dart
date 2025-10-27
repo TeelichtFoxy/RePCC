@@ -64,27 +64,17 @@ class _manualIPPageState extends State<manualIPPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              //Top Safe Space
-              Align(
-                alignment: Alignment.topCenter,
-                child: Container(width: 390, height: 50, color: Colors.red),
-              ),
               //Background
               Align(
-                child: Container(width: 390, height: 744, color: Colors.grey),
+                child: Container(width: MediaQuery.of(context).size.width, height: MediaQuery.of(context).size.height, color: Colors.grey),
               ),
-              //Bottom Safe Space
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(width: 390, height: 50, color: Colors.red),
-              )
             ],
           ),
           Column (
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(width: 390, height: 50),
+              SizedBox(width: 390, height: 70),
               Align(
                 alignment: Alignment.center,
                 child: Column (
@@ -96,7 +86,7 @@ class _manualIPPageState extends State<manualIPPage> {
                   ],
                 ),
               ),
-              Container(width: 390, height: 200, color: Colors.red),
+              SizedBox(width: MediaQuery.of(context).size.width, height: 200),
               Column (
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,

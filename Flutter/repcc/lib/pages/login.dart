@@ -9,34 +9,30 @@ class LogInPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack (
+      body: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        removeTop: true,
+        removeLeft: true,
+        removeRight: true,
+        child: Stack (
         children: [
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              //Top Safe Space
-              Align(
-                alignment: Alignment.topCenter,
-                child: Container(width: 390, height: 50, color: Colors.red),
-              ),
               //Background
               Align(
-                child: Container(width: 390, height: 744, color: Colors.grey)
-              ),
-              //Bottom Safe Space
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(width: 390, height: 50, color: Colors.red),
-              ),
-            ],
+                child: Container(width: MediaQuery.of(context).size.width, height: MediaQuery.of(context).size.height, color: Colors.grey)
+              )
+            ]
           ),
           //GUI
           Column (
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(height: 150, width: 390),
+              SizedBox(height: 70, width: 390),
               Stack (
                 children: [
                   Align(
@@ -91,6 +87,7 @@ class LogInPage extends StatelessWidget {
             ],
           )
         ]
+      )
       )
     );
   }

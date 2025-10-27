@@ -1,9 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:repcc/pages/manualIP.dart';
 
-class connectPage extends StatelessWidget {
+class connectPage extends StatefulWidget {
   const connectPage({super.key});
+  
+  @override
+  State<connectPage> createState() => _connectPageState();
+}
+
+class _connectPageState extends State<connectPage> {
+
+  final MobileScannerController cameraController = MobileScannerController();
+  bool _isScanning = true;
 
   @override
   Widget build(BuildContext context) {
@@ -14,27 +24,17 @@ class connectPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              //Top Safe Space
-              Align(
-                alignment: Alignment.topCenter,
-                child: Container(width: 390, height: 50, color: Colors.red)
-              ),
               //Background
               Align(
-                child: Container(width: 390, height: 744, color: Colors.grey),
+                child: Container(width: MediaQuery.of(context).size.width, height: MediaQuery.of(context).size.height, color: Colors.grey),
               ),
-              //Bottom Safe Space
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(width: 390, height: 50, color: Colors.red)
-              )
             ],
           ),
           Column (
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(width: 390, height: 50),
+              SizedBox(width: 390, height: 70),
               Align(
                 alignment: Alignment.center,
                 child: Column (
